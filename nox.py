@@ -44,35 +44,61 @@ save_freq = 1
 
 # START: The ideas in this portion of code are Copyright (c) 2018-2019 Nikita Misiura and used here under the MIT License
 def generator():
-    tf.keras.backend.clear_session() # release global state of old models and layers
+    tf.keras.backend.clear_session()  # Release global state of old models and layers
     layers = []
-    filters = [64, 128, 256, 512, 512, 512, 512, 512, 512, 512, 512, 512, 256, 128, 64] # filter layers 0 - 14
-    input = tf.keras.layers.Input(shape = (None, None, n_channels), name = "gen_input_image")
+    filters = [64, 128, 256, 512, 512, 512, 512, 512, 512, 512, 512, 512, 256, 128, 64]  # Filter layers 0 - 14
+    input = tf.keras.layers.Input(shape=(None, None, n_channels), name="gen_input_image")
+    concatenate = tf.keras.layers.Concatenate(axis=3)  # Define a reusable concatenation layer
+
     for i in range(1 + len(filters)):
-        if i == 0: # layer 0 convolution
-            convolved = tf.keras.layers.Conv2D(filters[0], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(input)
+        if i == 0:  # Layer 0 convolution
+            convolved = tf.keras.layers.Conv2D(
+                filters[0],
+                kernel_size=4,
+                strides=(2, 2),
+                padding="same",
+                kernel_initializer=tf.keras.initializers.GlorotUniform()
+            )(input)
             layers.append(convolved)
-        elif 1 <= i <= 7: # convolution layers
-            rectified = tf.keras.layers.LeakyReLU(alpha = 0.2)(layers[-1])
-            convolved = tf.keras.layers.Conv2D(filters[i], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+        elif 1 <= i <= 7:  # Convolution layers
+            rectified = tf.keras.layers.LeakyReLU(alpha=0.2)(layers[-1])
+            convolved = tf.keras.layers.Conv2D(
+                filters[i],
+                kernel_size=4,
+                strides=(2, 2),
+                padding="same",
+                kernel_initializer=tf.keras.initializers.GlorotUniform()
+            )(rectified)
             normalized = tf.keras.layers.LayerNormalization()(convolved)
             layers.append(normalized)
-        elif 8 <= i <= 14: # deconvolution layers
+        elif 8 <= i <= 14:  # Deconvolution layers
             if i == 8:
                 rectified = tf.keras.layers.ReLU()(layers[-1])
             else:
-                concatenated = tf.concat([layers[-1], layers[15 - i]], axis = 3)
+                concatenated = concatenate([layers[-1], layers[15 - i]])  # Use the Concatenate layer
                 rectified = tf.keras.layers.ReLU()(concatenated)
-            deconvolved = tf.keras.layers.Conv2DTranspose(filters[i], kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+            deconvolved = tf.keras.layers.Conv2DTranspose(
+                filters[i],
+                kernel_size=4,
+                strides=(2, 2),
+                padding="same",
+                kernel_initializer=tf.keras.initializers.GlorotUniform()
+            )(rectified)
             normalized = tf.keras.layers.LayerNormalization()(deconvolved)
             layers.append(normalized)
-        else: # layer 15
-            concatenated = tf.concat([layers[-1], layers[0]], axis = 3)
+        else:  # Layer 15
+            concatenated = concatenate([layers[-1], layers[0]])  # Use the Concatenate layer
             rectified = tf.keras.layers.ReLU()(concatenated)
-            deconvolved = tf.keras.layers.Conv2DTranspose(n_channels, kernel_size = 4, strides = (2, 2), padding = "same", kernel_initializer = tf.initializers.GlorotUniform())(rectified)
+            deconvolved = tf.keras.layers.Conv2DTranspose(
+                n_channels,
+                kernel_size=4,
+                strides=(2, 2),
+                padding="same",
+                kernel_initializer=tf.keras.initializers.GlorotUniform()
+            )(rectified)
             rectified = tf.keras.layers.ReLU()(deconvolved)
-            output = tf.math.subtract(input, rectified)
-    return tf.keras.Model(inputs = input, outputs = output, name = "generator")
+            output = tf.keras.layers.Subtract()([input, rectified])  # Use Subtract layer instead of tf.math.subtract
+    return tf.keras.Model(inputs=input, outputs=output, name="generator")
 # END: The ideas in this portion of code are Copyright (c) 2018-2019 Nikita Misiura and used here under the MIT License
 
 # START: The ideas in this portion of code are Copyright (c) 2018-2019 Nikita Misiura and used here under the MIT License

@@ -1,0 +1,9 @@
+numpy
+opencv-contrib-python-headless
+tensorflow[and-cuda]
+scikit-image
+scikit-learn
+matplotlib
+pickle5
+pandas
+
